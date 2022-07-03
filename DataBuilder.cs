@@ -8,9 +8,9 @@ class DataBuilder
 {
     internal static ShareDataContent updatedData = new ShareDataContent();
 
-    public static string ShareDataContentToJson(ShareDataContent content)
+    public static string ContentAsJson()
     {
-        return JsonConvert.SerializeObject(content, Formatting.Indented);
+        return JsonConvert.SerializeObject(updatedData, Formatting.Indented);
     }
 
     public static Dictionary<string, ShareDataEntity> BuildItemsOnGroundLabels(GameController Controller)
