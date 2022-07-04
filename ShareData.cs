@@ -110,19 +110,24 @@ namespace ShareData
         public class Client
         {
 
-            private void SendHeaders(TcpClient Client, int StatusCode)
+            private void SendHeaders(TcpClient Client, int StatusCode, string StatusCodeSuffix)
             {
-                string Headers = $"HTTP/1.1 {StatusCode}\nContent-Type: application/json\n\n";
-                byte[] HeadersBuffer = Encoding.ASCII.GetBytes(Headers);
+                string Headers = (
+                    $"HTTP/1.1 {StatusCode} {StatusCodeSuffix}\n" +
+                    "Content-Type: application/json\n" +
+                    "Connection: Keep-Alive\n" +
+                    "Keep-Alive: timeout=15\n\n"
+                );
+                byte[] HeadersBuffer = Encoding.UTF8.GetBytes(Headers);
                 Client.GetStream().Write(HeadersBuffer, 0, HeadersBuffer.Length);
             }
 
-            private void SendRequest(TcpClient Client, string Content, int StatusCode)
+            private void SendRequest(TcpClient Client, string Content, int StatusCode, string StatusCodeSuffix = "")
             {
 
-                SendHeaders(Client, StatusCode);
+                SendHeaders(Client, StatusCode, StatusCodeSuffix);
 
-                byte[] Buffer = Encoding.ASCII.GetBytes(Content);
+                byte[] Buffer = Encoding.UTF8.GetBytes(Content);
                 Client.GetStream().Write(Buffer, 0, Buffer.Length);
                 Client.Close();
             }
@@ -135,7 +140,7 @@ namespace ShareData
 
                 while ((Count = Client.GetStream().Read(Buffer, 0, Buffer.Length)) > 0)
                 {
-                    Request += Encoding.ASCII.GetString(Buffer, 0, Count);
+                    Request += Encoding.UTF8.GetString(Buffer, 0, Count);
 
                     if (Request.IndexOf("\r\n\r\n") >= 0 || Request.Length > 4096)
                     {
@@ -165,7 +170,7 @@ namespace ShareData
                         case "/get_content":
                             SendRequest(
                                 Client,
-                                DataBuilder.ShareDataContentToJson(DataBuilder.updatedData), 200
+                                DataBuilder.ContentAsJson(), 200, "OK"
                             );
                             break;
                         case "/":
