@@ -1,15 +1,15 @@
 ﻿using System;
+using ExileCore;
 using System.IO;
 using System.Net;
 using System.Text;
+using ExileCore.Shared;
 using System.Threading;
 using System.Net.Sockets;
 using System.Collections;
+using ExileCore.Shared.Helpers;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
-
-using ExileCore;
-using ExileCore.Shared;
-
 
 namespace ShareData
 {
@@ -20,6 +20,72 @@ namespace ShareData
         public Server ServerInstance = null;
         private static bool ServerIsRunning = false;
         private const int DefaultServerPort = 50000;
+
+        // TODO: Create preaload as another instance
+        private string PreloadAlerts => Path.Combine(DirectoryFullName, "config", "preload_alerts_default.txt");
+        private string PreloadAlertsPersonal => Path.Combine(DirectoryFullName, "config", "preload_alerts_personal.txt");
+
+        public void InitReloadFilesMethods() 
+        {
+            DataBuilder.ReloadGameFilesMethods.Add("LoadFiles");
+            DataBuilder.ReloadGameFilesMethods.Add("ReloadFiles");
+        }
+
+        public void ReadConfigFiles()
+        {
+            if (!File.Exists(PreloadAlerts))
+            {
+                DebugWindow.LogError($"PreloadAlert.ReadConfigFiles -> Config file is missing: {PreloadAlerts}");
+                return;
+            }
+            if (!File.Exists(PreloadAlertsPersonal))
+            {
+                File.Create(PreloadAlertsPersonal);
+                DebugWindow.LogMsg($"PreloadAlert.ReadConfigFiles -> Personal config file got created: {PreloadAlertsPersonal}");
+            }
+
+            DataBuilder.PreloadConfigLines.Clear();
+
+            AddLinesFromFile(PreloadAlerts, DataBuilder.PreloadConfigLines);
+            AddLinesFromFile(PreloadAlertsPersonal, DataBuilder.PreloadConfigLines);
+        }
+
+        public static void AddLinesFromFile(string path, IDictionary<string, PreloadConfigLine> preloadLines)
+        {
+            if (!File.Exists(path)) return;
+
+            var lines = File.ReadAllLines(path);
+            foreach (var line in lines)
+            {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+                if (line.StartsWith("#")) continue;
+
+                var lineContent = line.Split(';');
+                var metadataKey = lineContent[0].Trim();
+                if (preloadLines.ContainsKey(metadataKey))
+                {
+                    if (line.StartsWith("-"))
+                    {
+                        preloadLines.Remove(metadataKey);
+                    }
+                    continue;
+                }
+
+                var textAndColor = new PreloadConfigLine
+                {
+                    Text = lineContent[1].Trim(),
+                    Color = lineContent.ConfigColorValueExtractor(2)
+                };
+                preloadLines.Add(metadataKey, textAndColor);
+            }
+        }
+
+        public override void OnLoad()
+        {
+            base.OnLoad();
+            ReadConfigFiles();
+            InitReloadFilesMethods();
+        }
 
         public override bool Initialise()
         {
