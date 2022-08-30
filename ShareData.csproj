@@ -64,6 +64,10 @@
       <Name>Core</Name>
       <Private>False</Private>
     </ProjectReference>
+    <ProjectReference Include="..\ExileApi\GameOffsets\GameOffsets.csproj">
+      <Project>{38084BC9-079D-487E-B774-D2F407DC8389}</Project>
+      <Name>GameOffsets</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
