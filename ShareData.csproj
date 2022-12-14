@@ -70,8 +70,11 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="ImGui.NET, Version=1.88.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\ExileApi\packages\ImGui.NET.1.88.0\lib\netstandard2.0\ImGui.NET.dll</HintPath>
+    </Reference>
     <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\ExileApi\packages\Newtonsoft.Json.13.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <HintPath>..\ExileApi\packages\Newtonsoft.Json.13.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="SharpDX.Mathematics, Version=4.2.0.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1, processorArchitecture=MSIL">
       <HintPath>..\ExileApi\packages\SharpDX.Mathematics.4.2.0\lib\net45\SharpDX.Mathematics.dll</HintPath>
@@ -80,8 +83,14 @@
     <Reference Include="System.Net" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="..\ExileApi\packages\ImGui.NET.1.87.3\build\net40\ImGui.NET.targets" Condition="Exists('..\ExileApi\packages\ImGui.NET.1.87.3\build\net40\ImGui.NET.targets')" />
   <Import Project="..\..\..\ExileApi\packages\ImGui.NET.1.87.3\build\net40\ImGui.NET.targets" Condition="Exists('..\..\..\ExileApi\packages\ImGui.NET.1.87.3\build\net40\ImGui.NET.targets')" />
+  <Import Project="..\ExileApi\packages\ImGui.NET.1.88.0\build\net40\ImGui.NET.targets" Condition="Exists('..\ExileApi\packages\ImGui.NET.1.88.0\build\net40\ImGui.NET.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\ExileApi\packages\ImGui.NET.1.88.0\build\net40\ImGui.NET.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\ExileApi\packages\ImGui.NET.1.88.0\build\net40\ImGui.NET.targets'))" />
+  </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
          Other similar extension points exist, see Microsoft.Common.targets.
     <Target Name="BeforeBuild">

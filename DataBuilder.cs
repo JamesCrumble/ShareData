@@ -3,6 +3,8 @@ using ExileCore.PoEMemory.MemoryObjects;
 
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using System;
+using System.Reflection;
 
 class DataBuilder
 {
@@ -17,46 +19,81 @@ class DataBuilder
     {
         Dictionary<string, ShareDataEntity> dict = new Dictionary<string, ShareDataEntity>();
 
-        foreach (var value in Controller.IngameState.IngameUi.ItemsOnGroundLabels)
+        try
         {
-            ShareDataEntity entity = new ShareDataEntity();
+            foreach (var value in Controller.IngameState.IngameUi.ItemsOnGroundLabels)
+            {
+                ShareDataEntity entity = new ShareDataEntity();
 
-            entity.bounds_center_pos = $"{value.ItemOnGround.BoundsCenterPos}";
-            entity.grid_pos = $"{value.ItemOnGround.GridPos}";
-            entity.pos = $"{value.ItemOnGround.Pos}";
-            entity.distance_to_player = $"{value.ItemOnGround.DistancePlayer}";
-            entity.on_screen_position = $"{Controller.IngameState.Camera.WorldToScreen(value.ItemOnGround.BoundsCenterPos)}";
-            entity.additional_info = $"{value.ItemOnGround}";
+                entity.bounds_center_pos = $"{value.ItemOnGround.BoundsCenterPos}";
+                entity.grid_pos = $"{value.ItemOnGround.GridPos}";
+                entity.pos = $"{value.ItemOnGround.Pos}";
+                entity.distance_to_player = $"{value.ItemOnGround.DistancePlayer}";
+                entity.on_screen_position = $"{Controller.IngameState.Camera.WorldToScreen(value.ItemOnGround.BoundsCenterPos)}";
+                entity.additional_info = $"{value.ItemOnGround}";
 
-            dict.Add($"{value.ItemOnGround.Type}-{value.ItemOnGround.Address:X}", entity);
+                dict.Add($"{value.ItemOnGround.Type}-{value.ItemOnGround.Address:X}", entity);
 
+            }
+        } catch (Exception e)
+        {
+            DebugWindow.LogMsg($"ShareData cannot Cannot build ItemsOnGroundLabels data -> {e}");
         }
 
         return dict;
     }
 
+    public static Dictionary<string, string> BuildServerData(GameController Controller) {
+        Dictionary<string, string> dict = new Dictionary<string, string>();
+        return dict;
+    }
+
     public static ShareDataEntity ParsePlayerData(GameController Controller)
     {
-        Entity PlayerData = Controller.EntityListWrapper.Player;
         ShareDataEntity playerData = new ShareDataEntity();
+        
+        try
+        {
 
-        playerData.bounds_center_pos = $"{PlayerData.BoundsCenterPos}";
-        playerData.grid_pos = $"{PlayerData.GridPos}";
-        playerData.pos = $"{PlayerData.Pos}";
-        playerData.distance_to_player = $"{PlayerData.DistancePlayer}";
-        playerData.on_screen_position = $"{Controller.IngameState.Camera.WorldToScreen(PlayerData.BoundsCenterPos)}";
-        playerData.additional_info = $"{PlayerData}";
+            Entity PlayerData = Controller.EntityListWrapper.Player;
 
+            playerData.bounds_center_pos = $"{PlayerData.BoundsCenterPos}";
+            playerData.grid_pos = $"{PlayerData.GridPos}";
+            playerData.pos = $"{PlayerData.Pos}";
+            playerData.distance_to_player = $"{PlayerData.DistancePlayer}";
+            playerData.on_screen_position = $"{Controller.IngameState.Camera.WorldToScreen(PlayerData.BoundsCenterPos)}";
+            playerData.additional_info = $"{PlayerData}";
+
+        }
+        catch (Exception e) {
+            DebugWindow.LogMsg($"ShareData cannot build player data -> {e}");
+        }
         return playerData;
     }
 
-    public static void UpdateContentData(GameController Contoller)
+    public static string BuildMousePositionData(GameController Controller)
+    {
+        try
+        {
+            var mousePosX = Controller.IngameState.GetType().GetProperty("MousePosX").GetValue(Controller.IngameState);
+            var mousePosY = Controller.IngameState.GetType().GetProperty("MousePosY").GetValue(Controller.IngameState);
+
+            return $"X:{mousePosX} Y:{mousePosY}";
+        }
+        catch (Exception e) {
+            DebugWindow.LogMsg($"ShareData cannot build mouse position data -> {e}");
+        }
+
+        return "";
+    }
+
+    public static void UpdateContentData(GameController Controller)
     {
         ShareDataContent content = new ShareDataContent();
 
-        content.items_on_ground_label = BuildItemsOnGroundLabels(Contoller);
-        content.player_data = ParsePlayerData(Contoller);
-        content.mouse_position = $"X:{Contoller.IngameState.MousePosX} Y:{Contoller.IngameState.MousePosY}";
+        content.items_on_ground_label = BuildItemsOnGroundLabels(Controller);
+        content.player_data = ParsePlayerData(Controller);
+        content.mouse_position = BuildMousePositionData(Controller);
 
         updatedData = content;
     }
