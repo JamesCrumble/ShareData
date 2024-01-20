@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-public struct ShareDataEntity
+﻿public struct ShareDataEntity
 {
     public string bounds_center_pos;
     public string grid_pos;

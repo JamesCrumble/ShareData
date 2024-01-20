@@ -1,41 +1,40 @@
 ﻿using ExileCore;
 using ExileCore.PoEMemory.MemoryObjects;
 
-using System.Collections.Generic;
 using Newtonsoft.Json;
-using System;
-using System.Reflection;
 
 class DataBuilder
 {
-    internal static ShareDataContent updatedData = new ShareDataContent();
+    internal static ShareDataContent updatedData = new();
 
     public static string ContentAsJson()
     {
         return JsonConvert.SerializeObject(updatedData, Formatting.Indented);
     }
 
-    public static Dictionary<string, ShareDataEntity> BuildItemsOnGroundLabels(GameController Controller)
+    private static Dictionary<string, ShareDataEntity> BuildItemsOnGroundLabels(GameController Controller)
     {
-        Dictionary<string, ShareDataEntity> dict = new Dictionary<string, ShareDataEntity>();
+        Dictionary<string, ShareDataEntity> dict = new();
 
         try
         {
             foreach (var value in Controller.IngameState.IngameUi.ItemsOnGroundLabels)
             {
-                ShareDataEntity entity = new ShareDataEntity();
-
-                entity.bounds_center_pos = $"{value.ItemOnGround.BoundsCenterPos}";
-                entity.grid_pos = $"{value.ItemOnGround.GridPos}";
-                entity.pos = $"{value.ItemOnGround.Pos}";
-                entity.distance_to_player = $"{value.ItemOnGround.DistancePlayer}";
-                entity.on_screen_position = $"{Controller.IngameState.Camera.WorldToScreen(value.ItemOnGround.BoundsCenterPos)}";
-                entity.additional_info = $"{value.ItemOnGround}";
+                ShareDataEntity entity = new()
+                {
+                    bounds_center_pos = $"{value.ItemOnGround.BoundsCenterPosNum}",
+                    grid_pos = $"{value.ItemOnGround.GridPosNum}",
+                    pos = $"{value.ItemOnGround.PosNum}",
+                    distance_to_player = $"{value.ItemOnGround.DistancePlayer}",
+                    on_screen_position = $"{Controller.IngameState.Camera.WorldToScreen(value.ItemOnGround.BoundsCenterPosNum)}",
+                    additional_info = $"{value.ItemOnGround}"
+                };
 
                 dict.Add($"{value.ItemOnGround.Type}-{value.ItemOnGround.Address:X}", entity);
 
             }
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             DebugWindow.LogMsg($"ShareData cannot Cannot build ItemsOnGroundLabels data -> {e}");
         }
@@ -43,44 +42,56 @@ class DataBuilder
         return dict;
     }
 
-    public static Dictionary<string, string> BuildServerData(GameController Controller) {
-        Dictionary<string, string> dict = new Dictionary<string, string>();
+    public static Dictionary<string, string> BuildServerData(GameController Controller)
+    {
+        Dictionary<string, string> dict = new();
         return dict;
     }
 
-    public static ShareDataEntity ParsePlayerData(GameController Controller)
+    private static ShareDataEntity ParsePlayerData(GameController Controller)
     {
-        ShareDataEntity playerData = new ShareDataEntity();
-        
         try
         {
 
-            Entity PlayerData = Controller.EntityListWrapper.Player;
-
-            playerData.bounds_center_pos = $"{PlayerData.BoundsCenterPos}";
-            playerData.grid_pos = $"{PlayerData.GridPos}";
-            playerData.pos = $"{PlayerData.Pos}";
-            playerData.distance_to_player = $"{PlayerData.DistancePlayer}";
-            playerData.on_screen_position = $"{Controller.IngameState.Camera.WorldToScreen(PlayerData.BoundsCenterPos)}";
-            playerData.additional_info = $"{PlayerData}";
+            Entity playerDataEntity = Controller.EntityListWrapper.Player;
+            ShareDataEntity playerData = new()
+            {
+                bounds_center_pos = $"{playerDataEntity.BoundsCenterPosNum}",
+                grid_pos = $"{playerDataEntity.GridPosNum}",
+                pos = $"{playerDataEntity.PosNum}",
+                distance_to_player = $"{playerDataEntity.DistancePlayer}",
+                on_screen_position = $"{Controller.IngameState.Camera.WorldToScreen(playerDataEntity.BoundsCenterPosNum)}",
+                additional_info = $"{playerDataEntity}"
+            };
+            return playerData;
 
         }
-        catch (Exception e) {
+        catch (Exception e)
+        {
             DebugWindow.LogMsg($"ShareData cannot build player data -> {e}");
         }
-        return playerData;
+
+        return new ShareDataEntity();
     }
 
-    public static string BuildMousePositionData(GameController Controller)
+    private static string BuildMousePositionData(GameController Controller)
     {
+        IngameState? ingameState = Controller.IngameState;
+        if (ingameState is null) return "";
+
         try
         {
-            var mousePosX = Controller.IngameState.GetType().GetProperty("MousePosX").GetValue(Controller.IngameState);
-            var mousePosY = Controller.IngameState.GetType().GetProperty("MousePosY").GetValue(Controller.IngameState);
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+
+            var mousePosX = ingameState.GetType().GetProperty("MousePosX").GetValue(ingameState);
+            var mousePosY = ingameState.GetType().GetProperty("MousePosY").GetValue(ingameState);
+
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
 
             return $"X:{mousePosX} Y:{mousePosY}";
         }
-        catch (Exception e) {
+        catch (Exception e)
+        {
             DebugWindow.LogMsg($"ShareData cannot build mouse position data -> {e}");
         }
 
@@ -89,11 +100,12 @@ class DataBuilder
 
     public static void UpdateContentData(GameController Controller)
     {
-        ShareDataContent content = new ShareDataContent();
-
-        content.items_on_ground_label = BuildItemsOnGroundLabels(Controller);
-        content.player_data = ParsePlayerData(Controller);
-        content.mouse_position = BuildMousePositionData(Controller);
+        ShareDataContent content = new()
+        {
+            items_on_ground_label = BuildItemsOnGroundLabels(Controller),
+            player_data = ParsePlayerData(Controller),
+            mouse_position = BuildMousePositionData(Controller)
+        };
 
         updatedData = content;
     }
