@@ -1,27 +1,29 @@
-﻿using System;
-using ExileCore;
-using System.Linq;
+﻿using ExileCore;
 using ExileCore.Shared.Helpers;
-using System.Collections.Generic;
 using ExileCore.PoEMemory.MemoryObjects;
+
+using GameOffsets;
 
 using Newtonsoft.Json;
 using System.Reflection;
+using System.Text;
+using System.Threading;
 
 class PreloadBuilder
 {
-
-}
-
-class DataBuilder
-{
-    internal static ShareDataContent updatedData = new();
-
+    internal static uint AreaHash = 0;
     internal static Dictionary<string, PreloadConfigLine> PreloadConfig = new Dictionary<string, PreloadConfigLine>();
     internal static List<string> ReloadGameFilesMethods = new List<string>();
+    private static List<string> locationContentCache = new();
+    private static List<string> terrainEntitiesCache = new();
 
+    public static void Initialise(string PreloadAlerts, string PreloadAlertsPersonal)
+    {
+        InitReloadFilesMethods();
+        ReadConfigFiles(PreloadAlerts, PreloadAlertsPersonal);
+    }
 
-    public static void ReadConfigFiles(string PreloadAlerts, string PreloadAlertsPersonal)
+    private static void ReadConfigFiles(string PreloadAlerts, string PreloadAlertsPersonal)
     {
         if (!File.Exists(PreloadAlerts))
         {
@@ -34,20 +36,20 @@ class DataBuilder
             DebugWindow.LogMsg($"PreloadAlert.ReadConfigFiles -> Personal config file got created: {PreloadAlertsPersonal}");
         }
 
-        DataBuilder.PreloadConfig.Clear();
+        PreloadConfig.Clear();
 
         AddLinesFromFile(PreloadAlerts, PreloadConfig);
 
         AddLinesFromFile(PreloadAlertsPersonal, PreloadConfig);
     }
 
-    public static void InitReloadFilesMethods()
+    private static void InitReloadFilesMethods()
     {
         ReloadGameFilesMethods.Add("LoadFiles");
         ReloadGameFilesMethods.Add("ReloadFiles");
     }
 
-    public static void AddLinesFromFile(string path, IDictionary<string, PreloadConfigLine> preloadLines)
+    private static void AddLinesFromFile(string path, IDictionary<string, PreloadConfigLine> preloadLines)
     {
         if (!File.Exists(path)) return;
 
@@ -69,27 +71,27 @@ class DataBuilder
                 continue;
             }
 
-            var textAndColor = new PreloadConfigLine
+            var configLine = new PreloadConfigLine
             {
                 Text = lineContent[1].Trim(),
-                Color = lineContent.ConfigColorValueExtractor(2)
+                Color = lineContent.ConfigColorValueExtractor(2),
+                TerrainEntity = lineContent.Length > 3,
             };
-            preloadLines.Add(metadataKey, textAndColor);
+            preloadLines.Add(metadataKey, configLine);
         }
     }
 
-    public static bool DynamicLinkingReloadGameFiles(GameController Controller)
+    private static bool DynamicLinkingReloadGameFiles(GameController Controller)
     {
         Type t = Controller.Files.GetType();
 
 
         foreach (var MethodName in ReloadGameFilesMethods)
         {
-
             DebugWindow.LogMsg(MethodName);
-            MethodInfo Method = t.GetMethod(MethodName);
 
-            if (Method != null)
+            MethodInfo? Method = t.GetMethod(MethodName);
+            if (Method is not null)
             {
                 Method.Invoke(Controller.Files, null);
                 return true;
@@ -99,11 +101,8 @@ class DataBuilder
         return false;
     }
 
-    private static List<string> ParseLocationContentData(GameController Controller)
+    private static void waitWhileLoadingLocation(GameController Controller)
     {
-
-        List<string> data = new List<string>();
-
         while (true)
         {
             if (!Controller.IsLoading)
@@ -111,55 +110,77 @@ class DataBuilder
                 break;
             }
         }
+    }
+
+    private static void BuildFromAllFilesContentData(GameController Controller)
+    {
+        foreach (var file in Controller.Files.AllFiles)
+        {
+            if (file.Value.ChangeCount != Controller.Game.AreaChangeCount) continue;
+
+
+            string? text = file.Key;
+            if (string.IsNullOrWhiteSpace(text)) continue;
+
+            text = text.Split('@')[0].Trim();
+            var preloadLine = PreloadConfig.FirstOrDefault(pair => text == pair.Key);
+            if (preloadLine.Value is null) continue;
+
+            if (preloadLine.Value.TerrainEntity) terrainEntitiesCache.Add(preloadLine.Key);
+            locationContentCache.Add(preloadLine.Value.Text.Replace("\"", ""));
+        }
+    }
+
+    private static void ExcludeUnexistedTerrainEntities(GameController Controller)
+    {
+        List<string> terrainContent = new();
+        var tileData = Controller.Memory.ReadStdVector<TileStructure>(Controller.IngameState.Data.DataStruct.Terrain.TgtArray);
+
+        for (int i = 0; i < tileData.Length; i++)
+        {
+            var tgtTileStruct = Controller.Memory.Read<TgtTileStruct>(tileData[i].TgtFilePtr);
+
+            var key1 = tgtTileStruct.TgtPath.ToString(Controller.Memory);
+            var key2 = Controller.Memory.Read<TgtDetailStruct>(tgtTileStruct.TgtDetailPtr).name.ToString(Controller.Memory);
+
+            if (terrainEntitiesCache.Contains(key1)) terrainContent.Add(key1);
+        }
+
+        foreach (var terrainEntityKey in terrainEntitiesCache)
+        {
+            var preloadLine = PreloadConfig.FirstOrDefault(pair => terrainEntityKey == pair.Key);
+            if (terrainContent.Contains(terrainEntityKey)) continue;
+            locationContentCache.Remove(preloadLine.Value.Text);
+        }
+    }
+
+    public static List<string> LocationContentData(GameController Controller)
+    {
+        if (AreaHash == Controller.Game.CurrentAreaHash) return locationContentCache;
+
+        locationContentCache.Clear();
+        terrainEntitiesCache.Clear();
+        AreaHash = Controller.Game.CurrentAreaHash;
+        waitWhileLoadingLocation(Controller);
 
         try
         {
-            if (!DynamicLinkingReloadGameFiles(Controller)) { return data; }
-
-            var allFiles = Controller.Files.AllFiles;
-
-            foreach (var file in allFiles)
-            {
-                if (file.Value.ChangeCount != Controller.Game.AreaChangeCount) continue;
-
-
-                var text = file.Key;
-                if (string.IsNullOrWhiteSpace(text)) continue;
-                if (text.Contains("@")) text = text.Split('@')[0];
-
-                text = text.Trim();
-
-                if (file.Key.Contains("Archnemesis") || file.Key.Contains("LeagueBestiary"))
-                {
-                    Entity entity = Controller.Entities.FirstOrDefault(e => e.Metadata.Equals(file.Key) || e.Metadata.Equals(text));
-
-                    if (entity != null)
-                    {
-                        DebugWindow.LogMsg($"{entity}");
-                        DebugWindow.LogMsg($"IsValid - {entity.IsValid}");
-                        DebugWindow.LogMsg($"IsDead - {entity.IsDead}");
-                        DebugWindow.LogMsg($"IsHidden - {entity.IsHidden}");
-                        DebugWindow.LogMsg($"IsAlive - {entity.IsAlive}");
-                    }
-                }
-
-                var preloadLine = PreloadConfig.FirstOrDefault(tuple => text == tuple.Key);
-                // if (text.Contains("LeagueBestiary")) { 
-                //    DebugWindow.LogMsg($"{file.Key} - {preloadLine.Value} - {preloadLine.Value != null} - {file.Value.ChangeCount}");
-                // }
-
-                if (preloadLine.Value == null) continue;
-                // data.Add(preloadLine.Value.Text.Replace("\"", "") + " " + file.Key);
-                data.Add(preloadLine.Value.Text.Replace("\"", ""));
-            }
+            if (!DynamicLinkingReloadGameFiles(Controller)) { return locationContentCache; }
+            BuildFromAllFilesContentData(Controller);
+            if (terrainEntitiesCache.Count != 0) ExcludeUnexistedTerrainEntities(Controller);
         }
         catch (Exception e)
         {
             DebugWindow.LogError($"{nameof(DataBuilder)} -> {e}");
         }
 
-        return data;
+        return locationContentCache;
     }
+}
+
+class DataBuilder
+{
+    internal static ShareDataContent updatedData = new();
 
     public static string ContentAsJson()
     {
@@ -253,7 +274,8 @@ class DataBuilder
             items_on_ground_label = BuildItemsOnGroundLabels(Controller),
             player_data = ParsePlayerData(Controller),
             mouse_position = BuildMousePositionData(Controller),
-            location_content = ParseLocationContentData(Controller),
+            current_location_hash = PreloadBuilder.AreaHash,
+            location_content = PreloadBuilder.LocationContentData(Controller),
             current_location = Controller.Area.CurrentArea.DisplayName,
         };
 

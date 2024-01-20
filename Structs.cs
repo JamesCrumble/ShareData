@@ -16,6 +16,7 @@ public struct ShareDataContent
     public Dictionary<string, ShareDataEntity> items_on_ground_label;
     public ShareDataEntity player_data;
     public string current_location;
+    public uint current_location_hash;
     public string mouse_position;
     public List<string> location_content;
 }
@@ -24,6 +25,7 @@ public abstract class ConfigLineBase
 {
     public string Text { get; set; }
     public Color? Color { get; set; }
+    public bool TerrainEntity { get; set; }
 
     public override bool Equals(object obj)
     {

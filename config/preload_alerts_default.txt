@@ -7,6 +7,9 @@
 #
 ###################################################################################################
 # BREACH
+
+Metadata/Terrain/Woods/Woods/AzmeriLeague/Features/arenaTransition_01.tdt; King of the mists; ffFF5A5A; true
+
 Metadata/Chests/Breach/BreachChest1Large; Xoph's Clasped Hand; ffFF5A5A
 Metadata/Chests/Breach/BreachChest2Large; Tul's Clasped Hand; ffE0ffff
 Metadata/Chests/Breach/BreachChest3Large; Esh's Clasped Hand; ff6495ED

@@ -18,19 +18,26 @@ namespace ShareData
         private string PreloadAlerts => Path.Combine(DirectoryFullName, "config", "preload_alerts_default.txt");
         private string PreloadAlertsPersonal => Path.Combine(DirectoryFullName, "config", "preload_alerts_personal.txt");
 
+        private bool ServerIsRunning
+        {
+            get
+            {
+                return ServerInstance.IsRunning;
+            }
+        }
 
         public override void OnLoad()
         {
             GameController.LeftPanel.WantUse(() => Settings.Enable);
             ServerInstance = new Server(GetServerPort());
-            DataBuilder.ReadConfigFiles(PreloadAlerts, PreloadAlertsPersonal);
-            DataBuilder.InitReloadFilesMethods();
         }
 
         public override bool Initialise()
         {
             try
             {
+                PreloadBuilder.Initialise(PreloadAlerts, PreloadAlertsPersonal);
+
                 var dataUpdateCoroutine = new Coroutine(DataUpdateEvent(), this);
                 var serverControlCoroutine = new Coroutine(ServerControlEvent(), this);
                 Core.ParallelRunner.Run(dataUpdateCoroutine);
@@ -43,14 +50,6 @@ namespace ShareData
             }
 
             return true;
-        }
-
-        private bool ServerIsRunning
-        {
-            get
-            {
-                return ServerInstance.IsRunning;
-            }
         }
 
         private int GetServerPort()
