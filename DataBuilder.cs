@@ -252,11 +252,11 @@ class DataBuilder
         {
             items_on_ground_label = BuildItemsOnGroundLabels(Controller),
             player_data = ParsePlayerData(Controller),
-            mouse_position = BuildMousePositionData(Controller)
-            location_content = ParseLocationContentData(Controller);
-        current_location = Controller.Area.CurrentArea.DisplayName;
-    };
+            mouse_position = BuildMousePositionData(Controller),
+            location_content = ParseLocationContentData(Controller),
+            current_location = Controller.Area.CurrentArea.DisplayName,
+        };
 
-    updatedData = content;
+        updatedData = content;
     }
 }

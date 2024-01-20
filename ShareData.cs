@@ -1,10 +1,11 @@
-using System.Net;
+﻿using System.Net;
 using System.Text;
 using System.Net.Sockets;
 using System.Collections;
-using ExileCore.Shared.Helpers;
-using System.Collections.Generic;
 using System.Text.RegularExpressions;
+
+using ExileCore;
+using ExileCore.Shared;
 
 namespace ShareData
 {

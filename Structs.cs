@@ -1,3 +1,6 @@
+
+using SharpDX;
+
 public struct ShareDataEntity
 {
     public string bounds_center_pos;
@@ -13,6 +16,7 @@ public struct ShareDataContent
     public Dictionary<string, ShareDataEntity> items_on_ground_label;
     public ShareDataEntity player_data;
     public string current_location;
+    public string mouse_position;
     public List<string> location_content;
 }
 
