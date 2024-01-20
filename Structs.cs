@@ -1,7 +1,3 @@
-﻿using System;
-using SharpDX;
-using System.Collections.Generic;
-
 public struct ShareDataEntity
 {
     public string bounds_center_pos;

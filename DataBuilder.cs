@@ -5,13 +5,17 @@ using ExileCore.Shared.Helpers;
 using System.Collections.Generic;
 using ExileCore.PoEMemory.MemoryObjects;
 
-using System.IO;
 using Newtonsoft.Json;
 using System.Reflection;
 
+class PreloadBuilder
+{
+
+}
+
 class DataBuilder
 {
-    internal static ShareDataContent updatedData = new ShareDataContent();
+    internal static ShareDataContent updatedData = new();
 
     internal static Dictionary<string, PreloadConfigLine> PreloadConfig = new Dictionary<string, PreloadConfigLine>();
     internal static List<string> ReloadGameFilesMethods = new List<string>();
@@ -48,7 +52,7 @@ class DataBuilder
         if (!File.Exists(path)) return;
 
         var lines = File.ReadAllLines(path);
-        
+
         foreach (var line in lines)
         {
             if (string.IsNullOrWhiteSpace(line)) continue;
@@ -74,7 +78,7 @@ class DataBuilder
         }
     }
 
-    public static bool DynamicLinkingReloadGameFiles(GameController Controller) 
+    public static bool DynamicLinkingReloadGameFiles(GameController Controller)
     {
         Type t = Controller.Files.GetType();
 
@@ -85,8 +89,8 @@ class DataBuilder
             DebugWindow.LogMsg(MethodName);
             MethodInfo Method = t.GetMethod(MethodName);
 
-            if (Method != null) 
-            { 
+            if (Method != null)
+            {
                 Method.Invoke(Controller.Files, null);
                 return true;
             }
@@ -95,13 +99,13 @@ class DataBuilder
         return false;
     }
 
-    public static List<string> ParseLocationContentData(GameController Controller)
+    private static List<string> ParseLocationContentData(GameController Controller)
     {
 
         List<string> data = new List<string>();
 
         while (true)
-        { 
+        {
             if (!Controller.IsLoading)
             {
                 break;
@@ -111,7 +115,7 @@ class DataBuilder
         try
         {
             if (!DynamicLinkingReloadGameFiles(Controller)) { return data; }
-            
+
             var allFiles = Controller.Files.AllFiles;
 
             foreach (var file in allFiles)
@@ -148,20 +152,6 @@ class DataBuilder
                 // data.Add(preloadLine.Value.Text.Replace("\"", "") + " " + file.Key);
                 data.Add(preloadLine.Value.Text.Replace("\"", ""));
             }
-            // using (StreamWriter writer = new StreamWriter("content.json"))
-            // {
-            //    writer.WriteLine("[\n");
-            //    foreach (var entity in Controller.Entities) {
-            //        writer.WriteLine(entity);
-            //        writer.WriteLine($"MetaData - {entity.Metadata}");
-            //        writer.WriteLine($"IsValid - {entity.IsValid}");
-            //        writer.WriteLine($"IsDead - {entity.IsDead}");
-            //        writer.WriteLine($"IsHidden - {entity.IsHidden}");
-            //        writer.WriteLine($"IsAlive - {entity.IsAlive}");
-            //        writer.WriteLine();
-            //    }
-            //    writer.WriteLine("]");
-            // }
         }
         catch (Exception e)
         {
@@ -176,85 +166,97 @@ class DataBuilder
         return JsonConvert.SerializeObject(updatedData, Formatting.Indented);
     }
 
-    public static Dictionary<string, ShareDataEntity> BuildItemsOnGroundLabels(GameController Controller)
+    private static Dictionary<string, ShareDataEntity> BuildItemsOnGroundLabels(GameController Controller)
     {
-        Dictionary<string, ShareDataEntity> dict = new Dictionary<string, ShareDataEntity>();
+        Dictionary<string, ShareDataEntity> dict = new();
 
-        foreach (var value in Controller.IngameState.IngameUi.ItemsOnGroundLabels)
+        try
         {
-            ShareDataEntity entity = new ShareDataEntity();
+            foreach (var value in Controller.IngameState.IngameUi.ItemsOnGroundLabels)
+            {
+                ShareDataEntity entity = new()
+                {
+                    bounds_center_pos = $"{value.ItemOnGround.BoundsCenterPosNum}",
+                    grid_pos = $"{value.ItemOnGround.GridPosNum}",
+                    pos = $"{value.ItemOnGround.PosNum}",
+                    distance_to_player = $"{value.ItemOnGround.DistancePlayer}",
+                    on_screen_position = $"{Controller.IngameState.Camera.WorldToScreen(value.ItemOnGround.BoundsCenterPosNum)}",
+                    additional_info = $"{value.ItemOnGround}"
+                };
 
-            entity.bounds_center_pos = $"{value.ItemOnGround.BoundsCenterPos}";
-            entity.grid_pos = $"{value.ItemOnGround.GridPos}";
-            entity.pos = $"{value.ItemOnGround.Pos}";
-            entity.distance_to_player = $"{value.ItemOnGround.DistancePlayer}";
-            entity.on_screen_position = $"{Controller.IngameState.Camera.WorldToScreen(value.ItemOnGround.BoundsCenterPos)}";
-            entity.additional_info = $"{value.ItemOnGround}";
+                dict.Add($"{value.ItemOnGround.Type}-{value.ItemOnGround.Address:X}", entity);
 
-            dict.Add($"{value.ItemOnGround.Type}-{value.ItemOnGround.Address:X}", entity);
-
+            }
+        }
+        catch (Exception e)
+        {
+            DebugWindow.LogMsg($"ShareData cannot Cannot build ItemsOnGroundLabels data -> {e}");
         }
 
         return dict;
     }
 
-    public static ShareDataEntity ParsePlayerData(GameController Controller)
+    private static ShareDataEntity ParsePlayerData(GameController Controller)
     {
-        Entity PlayerData = Controller.EntityListWrapper.Player;
-        ShareDataEntity playerData = new ShareDataEntity();
+        try
+        {
 
-        playerData.bounds_center_pos = $"{PlayerData.BoundsCenterPos}";
-        playerData.grid_pos = $"{PlayerData.GridPos}";
-        playerData.pos = $"{PlayerData.Pos}";
-        playerData.distance_to_player = $"{PlayerData.DistancePlayer}";
-        playerData.on_screen_position = $"{Controller.IngameState.Camera.WorldToScreen(PlayerData.BoundsCenterPos)}";
-        playerData.additional_info = $"{PlayerData}";
+            Entity playerDataEntity = Controller.EntityListWrapper.Player;
+            ShareDataEntity playerData = new()
+            {
+                bounds_center_pos = $"{playerDataEntity.BoundsCenterPosNum}",
+                grid_pos = $"{playerDataEntity.GridPosNum}",
+                pos = $"{playerDataEntity.PosNum}",
+                distance_to_player = $"{playerDataEntity.DistancePlayer}",
+                on_screen_position = $"{Controller.IngameState.Camera.WorldToScreen(playerDataEntity.BoundsCenterPosNum)}",
+                additional_info = $"{playerDataEntity}"
+            };
+            return playerData;
 
-        return playerData;
+        }
+        catch (Exception e)
+        {
+            DebugWindow.LogMsg($"ShareData cannot build player data -> {e}");
+        }
+
+        return new ShareDataEntity();
     }
 
-    public static List<string> UpdateLocationContent(GameController Controller)
+    private static string BuildMousePositionData(GameController Controller)
     {
-        List<string> values = new List<string>();
-        return values;
+        IngameState? ingameState = Controller.IngameState;
+        if (ingameState is null) return "";
+
+        try
+        {
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+
+            var mousePosX = ingameState.GetType().GetProperty("MousePosX").GetValue(ingameState);
+            var mousePosY = ingameState.GetType().GetProperty("MousePosY").GetValue(ingameState);
+
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+
+            return $"X:{mousePosX} Y:{mousePosY}";
+        }
+        catch (Exception e)
+        {
+            DebugWindow.LogMsg($"ShareData cannot build mouse position data -> {e}");
+        }
+
+        return "";
     }
 
     public static void UpdateContentData(GameController Controller)
     {
-        ShareDataContent content = new ShareDataContent();
-        //DebugWindow.LogMsg($"{Controller.IngameState.ServerData.Address}");
-        //DebugWindow.LogMsg($"{String.Join(", ", Controller.IngameState.ServerData.NearestPlayers)}");
-        //DebugWindow.LogMsg($"{Controller.IngameState.ServerData.NetworkState}");
-
-        if (Controller != null)
+        ShareDataContent content = new()
         {
-            content.items_on_ground_label = BuildItemsOnGroundLabels(Controller);
-            content.player_data = ParsePlayerData(Controller);
-            content.current_location = Controller.Area.CurrentArea.DisplayName;
-            //if (oldMap != Controller.Area.CurrentArea.DisplayName)
-            //{
-            //    //DebugWindow.LogMsg("Before update");
-            //    content.location_content = ParseLocationContentData(Controller);
-            //    //DebugWindow.LogMsg("After update");
-            //    oldMap = Controller.Area.CurrentArea.DisplayName;
-            //}
-            content.location_content = ParseLocationContentData(Controller);
+            items_on_ground_label = BuildItemsOnGroundLabels(Controller),
+            player_data = ParsePlayerData(Controller),
+            mouse_position = BuildMousePositionData(Controller)
+            location_content = ParseLocationContentData(Controller);
+        current_location = Controller.Area.CurrentArea.DisplayName;
+    };
 
-            //if (Contoller.Area.CurrentArea.DisplayName != updatedData.current_location) 
-            //{
-            //    isAreaChanged = true;
-            //}
-            //
-            //if (isAreaChanged) 
-            //{ 
-            //    isAreaChanged = false;
-            //    content.location_content = ParseLocationContentData(Contoller);
-            //    //Core.ParallelRunner.Run(
-            //    //    new Coroutine(ParseLocationContentData(Contoller), $"{nameof(DataBuilder)}")
-            //    //);
-            //}
-        }
-
-        updatedData = content;
+    updatedData = content;
     }
 }
