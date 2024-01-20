@@ -1,0 +1,4 @@
+#Metadata; Text; Color (ARGB)
+#Example: Metadata/Chests/StrongBoxes/Strongbox; Box; ff00FF00
+#If you want to ignore a line from the preload alert from the default list prefix it with "-"
+#Example: -Metadata/Chests/StrongBoxes/Strongbox; Box; ff00FF00

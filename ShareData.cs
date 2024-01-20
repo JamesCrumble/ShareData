@@ -7,7 +7,6 @@ using System.Text.RegularExpressions;
 using ExileCore;
 using ExileCore.Shared;
 
-
 namespace ShareData
 {
 
@@ -16,6 +15,16 @@ namespace ShareData
 
         public required Server ServerInstance;
         private const int DefaultServerPort = 50000;
+        private string PreloadAlerts => Path.Combine(DirectoryFullName, "config", "preload_alerts_default.txt");
+        private string PreloadAlertsPersonal => Path.Combine(DirectoryFullName, "config", "preload_alerts_personal.txt");
+
+        private bool ServerIsRunning
+        {
+            get
+            {
+                return ServerInstance.IsRunning;
+            }
+        }
 
         public override void OnLoad()
         {
@@ -27,6 +36,8 @@ namespace ShareData
         {
             try
             {
+                PreloadBuilder.Initialise(PreloadAlerts, PreloadAlertsPersonal);
+
                 var dataUpdateCoroutine = new Coroutine(DataUpdateEvent(), this);
                 var serverControlCoroutine = new Coroutine(ServerControlEvent(), this);
                 Core.ParallelRunner.Run(dataUpdateCoroutine);
@@ -39,14 +50,6 @@ namespace ShareData
             }
 
             return true;
-        }
-
-        private bool ServerIsRunning
-        {
-            get
-            {
-                return ServerInstance.IsRunning;
-            }
         }
 
         private int GetServerPort()
