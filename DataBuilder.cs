@@ -197,11 +197,11 @@ class DataBuilder
             {
                 ShareDataEntity entity = new()
                 {
-                    bounds_center_pos = $"{value.ItemOnGround.BoundsCenterPosNum}",
-                    grid_pos = $"{value.ItemOnGround.GridPosNum}",
-                    pos = $"{value.ItemOnGround.PosNum}",
+                    bounds_center_pos = Helpers.Vector3ToString(value.ItemOnGround.BoundsCenterPosNum),
+                    grid_pos = Helpers.Vector2ToString(value.ItemOnGround.GridPosNum),
+                    pos = Helpers.Vector3ToString(value.ItemOnGround.PosNum),
                     distance_to_player = $"{value.ItemOnGround.DistancePlayer}",
-                    on_screen_position = $"{Controller.IngameState.Camera.WorldToScreen(value.ItemOnGround.BoundsCenterPosNum)}",
+                    on_screen_position = Helpers.Vector2ToString(Controller.IngameState.Camera.WorldToScreen(value.ItemOnGround.BoundsCenterPosNum)),
                     additional_info = $"{value.ItemOnGround}"
                 };
 
@@ -225,11 +225,11 @@ class DataBuilder
             Entity playerDataEntity = Controller.EntityListWrapper.Player;
             ShareDataEntity playerData = new()
             {
-                bounds_center_pos = $"{playerDataEntity.BoundsCenterPosNum}",
-                grid_pos = $"{playerDataEntity.GridPosNum}",
-                pos = $"{playerDataEntity.PosNum}",
+                bounds_center_pos = $"{Helpers.Vector3ToString(playerDataEntity.BoundsCenterPosNum)}",
+                grid_pos = $"{Helpers.Vector2ToString(playerDataEntity.GridPosNum)}",
+                pos = $"{Helpers.Vector3ToString(playerDataEntity.PosNum)}",
                 distance_to_player = $"{playerDataEntity.DistancePlayer}",
-                on_screen_position = $"{Controller.IngameState.Camera.WorldToScreen(playerDataEntity.BoundsCenterPosNum)}",
+                on_screen_position = $"{Helpers.Vector2ToString(Controller.IngameState.Camera.WorldToScreen(playerDataEntity.BoundsCenterPosNum))}",
                 additional_info = $"{playerDataEntity}"
             };
             return playerData;
